@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thambi AI | ATS Resume Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top left, #f0fdfa, #f8fafc);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .file-upload-hover:hover {
+            border-color: #0d9488;
+            background-color: #f0fdfa;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-12 px-4">
+
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center p-3 bg-teal-100 rounded-2xl mb-4">
+            <i data-lucide="cpu" class="text-teal-600 w-8 h-8"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-gray-900 tracking-tight">Thambi <span class="text-teal-600">AI</span></h1>
+        <p class="text-gray-500 mt-2">Optimize your resume for ATS algorithms in seconds.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div class="md:col-span-3 space-y-6">
+            <div class="glass-card p-6 rounded-3xl shadow-xl shadow-teal-900/5">
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Upload Resume</label>
+                    <div class="relative group">
+                        <input type="file" id="resumeFile" accept=".pdf" class="hidden">
+                        <label for="resumeFile" class="file-upload-hover flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer transition-all duration-200">
+                            <i data-lucide="upload-cloud" class="text-gray-400 group-hover:text-teal-500 mb-2"></i>
+                            <span id="fileName" class="text-sm text-gray-500">Click to upload or drag PDF</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Job Description</label>
+                    <textarea id="jobDesc" rows="6"
+                              class="w-full border border-gray-200 rounded-2xl p-4 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all text-sm"
+                              placeholder="Paste the target job description here..."></textarea>
+                </div>
+
+                <button onclick="analyzeResume()" id="analyzeBtn"
+                        class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-4 rounded-2xl shadow-lg shadow-teal-600/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    Analyze Resume
+                </button>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="bg-white/50 p-6 rounded-3xl border border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="lightbulb" class="text-amber-500 w-5 h-5"></i>
+                    Quick Tips
+                </h3>
+                <ul class="text-sm text-gray-600 space-y-4">
+                    <li class="flex gap-3">
+                        <span class="w-5 h-5 bg-teal-100 text-teal-600 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">1</span>
+                        Ensure your resume is in PDF format for best parsing.
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-5 h-5 bg-teal-100 text-teal-600 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">2</span>
+                        Include the full job title and key responsibilities.
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-5 h-5 bg-teal-100 text-teal-600 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold">3</span>
+                        Thambi AI will highlight matching keywords.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultContainer" class="mt-10 hidden">
+        <div class="glass-card rounded-3xl overflow-hidden shadow-2xl border-teal-100">
+            <div class="bg-teal-600 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-white font-bold flex items-center gap-2">
+                    <i data-lucide="clipboard-check"></i> Analysis Result
+                </h2>
+                <button onclick="window.print()" class="text-teal-100 hover:text-white text-sm transition">Download Report</button>
+            </div>
+            <div id="result" class="p-8 space-y-6 text-gray-700 leading-relaxed">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Icons
+    lucide.createIcons();
+
+    // Show file name after selection
+    document.getElementById('resumeFile').addEventListener('change', function(e) {
+        const name = e.target.files[0]?.name || "Click to upload or drag PDF";
+        document.getElementById('fileName').textContent = name;
+        document.getElementById('fileName').classList.add('text-teal-600', 'font-medium');
+    });
+
+    async function analyzeResume() {
+        const resumeFile = document.getElementById("resumeFile").files[0];
+        const jobDesc = document.getElementById("jobDesc").value;
+        const resultContainer = document.getElementById("resultContainer");
+        const resultDiv = document.getElementById("result");
+        const btn = document.getElementById("analyzeBtn");
+
+        if (!resumeFile || !jobDesc.trim()) {
+            alert("Please provide both a resume and a job description.");
+            return;
+        }
+
+        // Loading State
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse flex items-center gap-2"><i data-lucide="loader-2" class="animate-spin"></i> Processing...</span>`;
+        lucide.createIcons();
+        
+        const formData = new FormData();
+        formData.append("resume", resumeFile);
+        formData.append("job_description", jobDesc);
+
+        try {
+            const response = await fetch("http://localhost:8080/analyze", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            resultContainer.classList.remove("hidden");
+            resultDiv.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                        <h4 class="font-bold text-blue-800 mb-2 flex items-center gap-2"><i data-lucide="user"></i> Parsed Resume</h4>
+                        <div class="text-sm opacity-80 whitespace-pre-wrap">${data.parsed_resume}</div>
+                    </div>
+                    <div class="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                        <h4 class="font-bold text-purple-800 mb-2 flex items-center gap-2"><i data-lucide="briefcase"></i> Job Requirements</h4>
+                        <div class="text-sm opacity-80 whitespace-pre-wrap">${data.parsed_job_description}</div>
+                    </div>
+                </div>
+                <div class="mt-6 p-6 bg-teal-50 rounded-2xl border border-teal-100">
+                    <h4 class="font-bold text-teal-800 mb-3 flex items-center gap-2"><i data-lucide="bar-chart-3"></i> ATS Insights</h4>
+                    <div class="prose prose-teal max-w-none whitespace-pre-wrap">${data.ats_result}</div>
+                </div>
+            `;
+            lucide.createIcons();
+            
+            // Scroll to results
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            alert("Server connection failed. Is the backend running on localhost:8080?");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5"></i> Analyze Resume`;
+            lucide.createIcons();
+        }
+    }
+</script>
+
+</body>
+</html>
